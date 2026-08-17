@@ -24,6 +24,6 @@ enum AircraftModelAsset: String, CaseIterable {
     }
 
     private static func normalized(_ value: String) -> String {
-        value.lowercased().filter(\.isLetterOrNumber)
+        String(value.lowercased().filter { $0.isLetter || $0.isNumber })
     }
 }
