@@ -80,3 +80,18 @@ by matching FBX model-node counts to OBJ group counts:
 The procedural C++ mesh remains a fallback/debug renderer only. Production cards
 must use an approved authored aircraft asset so a 737 can never be represented by
 a generic or incorrect silhouette.
+
+## One-command conversion
+
+No Blender UI knowledge is required. On macOS, install Blender once and run the
+headless processor from the repository root:
+
+```bash
+brew install --cask blender
+scripts/process_aircraft_assets.sh /path/to/3d-models.zip
+```
+
+The processor opens each FBX in Blender's background mode, removes non-mesh scene
+objects, normalizes the model, smooths and reduces oversized geometry, exports a
+mobile USDZ, and writes a JSON audit under `build/aircraft-reports`. It never
+requires interacting with Blender's interface.
