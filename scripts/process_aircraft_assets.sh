@@ -56,7 +56,15 @@ while IFS=$'\t' read -r asset_name source; do
     --target-faces 80000
 done < "$mapfile_path"
 
+bundle="$repo_root/build/tally-aircraft-output.zip"
+rm -f "$bundle"
+(
+  cd "$repo_root"
+  zip -qr "$bundle" ios/Tally/Resources/AircraftModels build/aircraft-reports
+)
+
 echo
 echo "Aircraft processing complete."
 echo "USDZ assets: $output_dir"
 echo "Audit reports: $report_dir"
+echo "Upload this file back to Codex: $bundle"
