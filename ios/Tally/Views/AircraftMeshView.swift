@@ -90,7 +90,7 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
         model.pivot = SCNMatrix4MakeTranslation(center.x, center.y, center.z)
         model.scale = SCNVector3(scale, scale, scale)
         model.position = SCNVector3(0, compact ? -0.1 : -0.25, 0)
-        model.eulerAngles = SCNVector3(-0.09, 0, -0.06)
+        model.eulerAngles = SCNVector3(-0.09, asset.presentationYawRadians, -0.06)
 
         let camera = SCNCamera()
         camera.fieldOfView = compact ? 34 : 31

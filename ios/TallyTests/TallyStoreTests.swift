@@ -25,23 +25,23 @@ final class TallyStoreTests: XCTestCase {
     }
 
     func testAircraftAssetsResolveOnlyApprovedTypes() {
-        let a220 = SeedData.encounters.first { $0.aircraft.model == "A220-300" }!.aircraft
-        XCTAssertEqual(AircraftModelAsset.resolve(for: a220), .airbusA220300)
-
-        let exactA320 = aircraft(manufacturer: "Airbus", model: "A320-200")
-        XCTAssertEqual(AircraftModelAsset.resolve(for: exactA320), .airbusA320200)
-
-        let unverifiedVariant = aircraft(manufacturer: "Airbus", model: "A320neo")
-        XCTAssertNil(AircraftModelAsset.resolve(for: unverifiedVariant))
-
         let boeing737 = aircraft(manufacturer: "Boeing", model: "737-800")
         XCTAssertEqual(AircraftModelAsset.resolve(for: boeing737), .boeing737800)
 
         let boeing757 = aircraft(manufacturer: "Boeing", model: "757-200")
         XCTAssertEqual(AircraftModelAsset.resolve(for: boeing757), .boeing757200)
 
+        let boeing787 = aircraft(manufacturer: "Boeing", model: "787-9")
+        XCTAssertEqual(AircraftModelAsset.resolve(for: boeing787), .boeing7879)
+
         let unverifiedBoeingVariant = aircraft(manufacturer: "Boeing", model: "737-700")
         XCTAssertNil(AircraftModelAsset.resolve(for: unverifiedBoeingVariant))
+
+        let unavailableAirbus = aircraft(manufacturer: "Airbus", model: "A220-300")
+        XCTAssertNil(AircraftModelAsset.resolve(for: unavailableAirbus))
+
+        XCTAssertEqual(AircraftModelAsset.boeing737800.presentationYawRadians, .pi / 2)
+        XCTAssertEqual(AircraftModelAsset.boeing7879.presentationYawRadians, .pi / 2)
     }
 
     private func aircraft(manufacturer: String, model: String) -> Aircraft {

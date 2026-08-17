@@ -87,7 +87,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                Text("Aircraft source models are credited to 2001kraft except the Airbus A220-300. Tally liveries and collectible artwork are independently authored.")
+                Text("Aircraft source models are credited to 2001kraft except the Airbus A220-300 and iSteven’s CC BY-NC 4.0 Boeing 787 Dreamliner. Tally liveries and collectible artwork are independently authored.")
                     .font(.caption)
                     .foregroundStyle(TallyTheme.muted)
             }
