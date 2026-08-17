@@ -26,7 +26,7 @@ final class TallyStoreTests: XCTestCase {
 
     func testAircraftAssetsResolveOnlyApprovedTypes() {
         let boeing737 = aircraft(manufacturer: "Boeing", model: "737-800")
-        XCTAssertEqual(AircraftModelAsset.resolve(for: boeing737), .boeing737800)
+        XCTAssertNil(AircraftModelAsset.resolve(for: boeing737))
 
         let boeing757 = aircraft(manufacturer: "Boeing", model: "757-200")
         XCTAssertEqual(AircraftModelAsset.resolve(for: boeing757), .boeing757200)
@@ -40,7 +40,6 @@ final class TallyStoreTests: XCTestCase {
         let unavailableAirbus = aircraft(manufacturer: "Airbus", model: "A220-300")
         XCTAssertNil(AircraftModelAsset.resolve(for: unavailableAirbus))
 
-        XCTAssertEqual(AircraftModelAsset.boeing737800.presentationYawRadians, .pi / 2)
         XCTAssertEqual(AircraftModelAsset.boeing7879.presentationYawRadians, .pi / 2)
     }
 

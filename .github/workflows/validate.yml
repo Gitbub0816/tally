@@ -45,7 +45,7 @@ jobs:
           test -n "$APP_PATH"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist")" = "Tally"
           test -x "$APP_PATH/Tally"
-          for model in boeing_737_800 boeing_757_200 boeing_787_9; do
+          for model in boeing_757_200 boeing_787_9; do
             test -f "$APP_PATH/$model.usdz"
             unzip -tq "$APP_PATH/$model.usdz"
           done

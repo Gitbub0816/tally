@@ -90,7 +90,8 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
         model.pivot = SCNMatrix4MakeTranslation(center.x, center.y, center.z)
         model.scale = SCNVector3(scale, scale, scale)
         model.position = SCNVector3(0, compact ? -0.1 : -0.25, 0)
-        model.eulerAngles = SCNVector3(-0.09, asset.presentationYawRadians, -0.06)
+        model.eulerAngles = SCNVector3(0, asset.presentationYawRadians, 0)
+        applyLivery(to: model)
 
         let camera = SCNCamera()
         camera.fieldOfView = compact ? 34 : 31
@@ -117,6 +118,67 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
         fillNode.position = SCNVector3(-3, 2, 4)
         scene.rootNode.addChildNode(fillNode)
     }
+
+    private func applyLivery(to model: SCNNode) {
+        let primary = UIColor(hex: encounter.palette.primaryHex)
+        let secondary = UIColor(hex: encounter.palette.secondaryHex)
+        let accent = UIColor(hex: encounter.palette.accentHex)
+        let wing = UIColor(white: 0.78, alpha: 1)
+        let detail = UIColor(white: 0.55, alpha: 1)
+        let dark = UIColor(red: 0.025, green: 0.04, blue: 0.065, alpha: 1)
+
+        model.enumerateChildNodes { node, _ in
+            guard let geometry = node.geometry else { return }
+            let color: UIColor
+
+            switch liveryRole(for: node.name ?? "") {
+            case .fuselage: color = primary
+            case .wing: color = wing
+            case .engine: color = secondary
+            case .tail: color = accent
+            case .dark: color = dark
+            case .detail: color = detail
+            }
+
+            let sourceMaterials = geometry.materials.isEmpty ? [SCNMaterial()] : geometry.materials
+            geometry.materials = sourceMaterials.map { source in
+                let material = source.copy() as? SCNMaterial ?? SCNMaterial()
+                material.diffuse.contents = color
+                material.metalness.contents = 0.14
+                material.roughness.contents = 0.38
+                material.isDoubleSided = true
+                return material
+            }
+        }
+    }
+
+    private func liveryRole(for nodeName: String) -> LiveryRole {
+        guard asset == .boeing7879 else { return .detail }
+
+        switch nodeName {
+        case "object001_Material003_0":
+            return .fuselage
+        case "object016_Material006_0", "object013_Material008_0":
+            return .wing
+        case "object022_Material001_0", "object009_Material001_0":
+            return .engine
+        case "object008_Material011_0", "object014_whtemet_0":
+            return .tail
+        case "object005_blackmat_0":
+            return .dark
+        default:
+            return .detail
+        }
+    }
+}
+
+private enum LiveryRole {
+    case fuselage
+    case wing
+    case engine
+    case tail
+    case dark
+    case detail
 }
 
 private struct ProceduralAircraftMeshView: UIViewRepresentable {
@@ -143,7 +205,9 @@ private struct ProceduralAircraftMeshView: UIViewRepresentable {
 
     fileprivate func scene() -> SCNScene {
         let scene = SCNScene()
-        let aircraft = SCNNode(geometry: geometry())
+        let aircraft = encounter.aircraft.model.lowercased().contains("737")
+            ? boeing737Node()
+            : SCNNode(geometry: geometry())
         aircraft.eulerAngles = SCNVector3(-0.10, -0.08, 0)
         scene.rootNode.addChildNode(aircraft)
 
@@ -158,6 +222,75 @@ private struct ProceduralAircraftMeshView: UIViewRepresentable {
         let fill = SCNLight(); fill.type = .omni; fill.intensity = 420; fill.color = UIColor(red: 0.75, green: 0.82, blue: 1, alpha: 1)
         let fillNode = SCNNode(); fillNode.light = fill; fillNode.position = SCNVector3(-3, 2, 4); scene.rootNode.addChildNode(fillNode)
         return scene
+    }
+
+    private func boeing737Node() -> SCNNode {
+        let root = SCNNode()
+        let fuselageMaterial = SCNMaterial()
+        fuselageMaterial.diffuse.contents = LiveryTexture.image(for: encounter)
+        fuselageMaterial.metalness.contents = 0.18
+        fuselageMaterial.roughness.contents = 0.34
+
+        let fuselage = SCNNode(geometry: SCNCapsule(capRadius: 0.34, height: 5.8))
+        fuselage.geometry?.materials = [fuselageMaterial]
+        fuselage.eulerAngles.z = .pi / 2
+        root.addChildNode(fuselage)
+
+        let wingMaterial = material(color: UIColor(white: 0.78, alpha: 1), metalness: 0.34)
+        let wing = surface(
+            vertices: [
+                SCNVector3(0.8, -0.03, 0.18), SCNVector3(-0.8, -0.03, 0.22),
+                SCNVector3(-0.45, -0.03, 2.15), SCNVector3(0.05, -0.03, 2.15),
+                SCNVector3(0.8, -0.03, -0.18), SCNVector3(-0.8, -0.03, -0.22),
+                SCNVector3(-0.45, -0.03, -2.15), SCNVector3(0.05, -0.03, -2.15)
+            ],
+            indices: [0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6],
+            material: wingMaterial
+        )
+        root.addChildNode(wing)
+
+        let tailMaterial = material(color: UIColor(hex: encounter.palette.secondaryHex), metalness: 0.2)
+        let verticalTail = surface(
+            vertices: [
+                SCNVector3(-2.45, 0.18, 0), SCNVector3(-1.45, 0.18, 0),
+                SCNVector3(-1.82, 1.25, 0), SCNVector3(-2.2, 1.25, 0)
+            ],
+            indices: [0, 1, 2, 0, 2, 3],
+            material: tailMaterial
+        )
+        root.addChildNode(verticalTail)
+
+        let stabilizer = surface(
+            vertices: [
+                SCNVector3(-1.7, 0.2, 0.12), SCNVector3(-2.45, 0.2, 0.12),
+                SCNVector3(-2.25, 0.2, 1.05), SCNVector3(-1.9, 0.2, 1.05),
+                SCNVector3(-1.7, 0.2, -0.12), SCNVector3(-2.45, 0.2, -0.12),
+                SCNVector3(-2.25, 0.2, -1.05), SCNVector3(-1.9, 0.2, -1.05)
+            ],
+            indices: [0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6],
+            material: wingMaterial
+        )
+        root.addChildNode(stabilizer)
+
+        let engineMaterial = material(color: UIColor(hex: encounter.palette.secondaryHex), metalness: 0.32)
+        for z: Float in [-0.82, 0.82] {
+            let engine = SCNNode(geometry: SCNCapsule(capRadius: 0.2, height: 1.05))
+            engine.geometry?.materials = [engineMaterial]
+            engine.eulerAngles.z = .pi / 2
+            engine.position = SCNVector3(0.2, -0.42, z)
+            root.addChildNode(engine)
+        }
+
+        return root
+    }
+
+    private func surface(vertices: [SCNVector3], indices: [Int32], material: SCNMaterial) -> SCNNode {
+        let source = SCNGeometrySource(vertices: vertices)
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        let geometry = SCNGeometry(sources: [source], elements: [element])
+        material.isDoubleSided = true
+        geometry.materials = [material]
+        return SCNNode(geometry: geometry)
     }
 
     private func geometry() -> SCNGeometry {
