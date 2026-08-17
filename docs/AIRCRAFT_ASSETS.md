@@ -81,6 +81,19 @@ The procedural C++ mesh remains a fallback/debug renderer only. Production cards
 must use an approved authored aircraft asset so a 737 can never be represented by
 a generic or incorrect silhouette.
 
+## Bundled RealityKit assets
+
+The verified exports below are bundled with the iOS target and resolved only for
+an exact approved aircraft type. Any unmatched type continues to use the
+procedural fallback until its source geometry is identified conclusively.
+
+| Aircraft | Bundled USDZ |
+| --- | --- |
+| Airbus A220-300 | `airbus_a220_300.usdz` |
+| Airbus A320-200 | `airbus_a320_200.usdz` |
+| Airbus A380 | `airbus_a380.usdz` |
+| Cessna 152 | `cessna_152.usdz` |
+
 ## One-command conversion
 
 No Blender UI knowledge is required. On macOS, install Blender once and run the
