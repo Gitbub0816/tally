@@ -62,4 +62,6 @@ ctest --test-dir build
 - R2 stores rendered card assets. The first milestone draws aircraft cards locally and does not require R2.
 - The same deterministic rarity formula is represented in Swift demo data, C++ production core, and backend tests.
 
-See [architecture](docs/ARCHITECTURE.md), the [API contract](docs/API.md), and [keys, provisioning, and costs](docs/SETUP_AND_COSTS.md).
+See [architecture](docs/ARCHITECTURE.md), the [API contract](docs/API.md),
+[keys, provisioning, and costs](docs/SETUP_AND_COSTS.md), and the
+[aircraft asset manifest and attribution](docs/AIRCRAFT_ASSETS.md).

@@ -77,6 +77,20 @@ struct SettingsView: View {
                 LabeledContent("Card renderer", value: "Native + C++")
                 if store.isSignedIn { Button("Sign out", role: .destructive) { store.signOut() } }
             }
+            Section("Aircraft credits") {
+                Link(destination: URL(string: "https://www.cgtrader.com/designers/2001kraft")!) {
+                    LabeledContent("Source aircraft models") {
+                        HStack(spacing: 5) {
+                            Text("2001kraft")
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption2)
+                        }
+                    }
+                }
+                Text("Aircraft source models are credited to 2001kraft except the Airbus A220-300. Tally liveries and collectible artwork are independently authored.")
+                    .font(.caption)
+                    .foregroundStyle(TallyTheme.muted)
+            }
         }.navigationTitle("Settings").scrollContentBackground(.hidden).background(TallyTheme.ink)
     }
 }
