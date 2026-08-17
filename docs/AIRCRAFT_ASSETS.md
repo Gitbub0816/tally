@@ -92,8 +92,10 @@ scripts/process_aircraft_assets.sh /path/to/3d-models.zip
 ```
 
 The processor opens each FBX in Blender's background mode, removes non-mesh scene
-objects, normalizes the model, smooths and reduces oversized geometry, exports a
-mobile USDZ, and writes a JSON audit under `build/aircraft-reports`. It never
+objects, normalizes the model, removes unavailable legacy image references while
+preserving UVs and material slots, smooths and reduces oversized geometry,
+exports a neutral mobile USDZ, and writes a JSON audit under
+`build/aircraft-reports`. It never
 requires interacting with Blender's interface. When it finishes, upload the
 generated `build/tally-aircraft-output.zip` to Codex so the optimized models can
 be verified, identified, and wired into the RealityKit renderer.
