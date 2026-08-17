@@ -25,7 +25,7 @@ should be independently authored.
 | Aircraft | FBX source | Matching OBJ | Evidence |
 | --- | --- | --- | --- |
 | Airbus A220-300 | `source/AIRBUS A220-300.fbx` | — | Filename, node names, and material names |
-| Misidentified 787-derived airframe | `3d-model-3.fbx` | `3d-model-4.obj` | In-app visual validation disproved the earlier 737 attribution; this source must not resolve to a 737 card |
+| Boeing 737-800 / 737-839B | `3d-model-3.fbx` | `3d-model-4.obj` | Geometry and archive date match the creator's [Central Airlines Boeing 737-839B Interior](https://www.cgtrader.com/free-3d-models/aircraft/commercial-aircraft/central-airlines-boeing-737-839b-interior--2) listing |
 | Boeing 757-200 | `3d-model-2.fbx` | `3d-model-3.obj` | Long narrow-body geometry and archive date match the creator's [Template Boeing 757-200](https://www.cgtrader.com/free-3d-models/aircraft/commercial-aircraft/template-boeing-757-200) listing |
 | Boeing 787 Dreamliner / 787-9 card asset | `Boeing 787 Dreamliner.fbx` / supplied GLB | — | Aircraft identity is explicit in the supplied archive and model scene names; source: [iSteven](https://sketchfab.com/3d-models/boeing-787-dreamliner-3ba8a5275d0e41968b34d367c34e8f0f), CC BY-NC 4.0 |
 | Airbus A320-200 | `3d-model-8.fbx` | `3d-model-9.obj` | Embedded `Thai Airways International Airbus A320-200 Aircraft` node names |
@@ -97,6 +97,7 @@ procedural fallback until its source geometry is identified conclusively.
 
 | Aircraft | Bundled USDZ |
 | --- | --- |
+| Boeing 737-800 | `boeing_737_800.usdz` |
 | Boeing 757-200 | `boeing_757_200.usdz` |
 | Boeing 787-9 | `boeing_787_9.usdz` |
 
@@ -104,10 +105,6 @@ The earlier Airbus A220-300, A320-200, A380, and Cessna 152 exports were
 truncated ZIP containers and have been removed from the app bundle. Those exact
 types intentionally use the procedural fallback until their source models are
 regenerated as valid USDZ archives.
-
-The former `boeing_737_800.usdz` export was visually confirmed to be a
-787-derived airframe and has been removed. Boeing 737 cards intentionally use
-the procedural fallback until a real 737 source is verified.
 
 ## One-command conversion
 
