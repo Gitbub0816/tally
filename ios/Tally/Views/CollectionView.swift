@@ -71,7 +71,7 @@ struct MiniCard: View {
                     Spacer()
                     Text("\(encounter.rarityScore)").font(.system(size: 12, weight: .black, design: .monospaced))
                 }.foregroundStyle(.white.opacity(0.9))
-                AircraftArtwork(encounter: encounter, compact: true)
+                AircraftMeshView(encounter: encounter, compact: true)
                     .frame(maxHeight: .infinity)
                     .padding(.horizontal, -4)
                 VStack(alignment: .leading, spacing: 5) {

@@ -3,6 +3,7 @@ import SwiftUI
 struct ContactsView: View {
     @EnvironmentObject private var store: TallyStore
     @State private var activeCard: Encounter?
+    @State private var showingPointAndShoot = false
 
     var body: some View {
         NavigationStack {
@@ -10,6 +11,7 @@ struct ContactsView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     ScreenHeader(eyebrow: "RADAR SESSION 03:42:18", title: "Contacts", trailing: "BNA · 12 NM")
                     awayBriefing
+                    pointAndShoot
                     sessionControl
                     radar
                     prioritySection
@@ -23,7 +25,23 @@ struct ContactsView: View {
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
+            .fullScreenCover(isPresented: $showingPointAndShoot) { PointAndShootView() }
         }
+    }
+
+    private var pointAndShoot: some View {
+        Button { showingPointAndShoot = true } label: {
+            HStack(spacing: 14) {
+                ZStack { Circle().stroke(TallyTheme.ink.opacity(0.35), lineWidth: 1); Image(systemName: "camera.viewfinder").font(.title2) }.frame(width: 48, height: 48)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("POINT & SHOOT").font(.system(size: 13, weight: .black, design: .monospaced)).tracking(1.5)
+                    Text("Aim at an aircraft · lock the live contact · capture its card").font(.caption).opacity(0.76)
+                }
+                Spacer(); Image(systemName: "chevron.right")
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(15)
+        }
+        .buttonStyle(.plain).foregroundStyle(TallyTheme.ink)
+        .background(TallyTheme.brass, in: RoundedRectangle(cornerRadius: 17))
     }
 
     private var sessionControl: some View {
@@ -101,7 +119,7 @@ struct ContactRow: View {
 
     var body: some View {
         HStack(spacing: 13) {
-            AircraftArtwork(encounter: encounter, compact: true)
+            AircraftMeshView(encounter: encounter, compact: true)
                 .frame(width: 58, height: 38)
                 .padding(5)
                 .background(Color(hex: encounter.palette.primaryHex).opacity(0.22), in: RoundedRectangle(cornerRadius: 10))

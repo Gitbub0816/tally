@@ -25,5 +25,8 @@ typedef NS_ENUM(NSInteger, TLYRarityTier) {
                     firstPersonalSighting:(BOOL)firstPersonalSighting;
 @end
 
-NS_ASSUME_NONNULL_END
+@interface TLYAircraftMeshFactory : NSObject
++ (NSDictionary<NSString *, id> *)meshForModel:(NSString *)model;
+@end
 
+NS_ASSUME_NONNULL_END

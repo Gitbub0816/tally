@@ -13,6 +13,7 @@
   <key>UILaunchScreen</key><dict><key>UIColorName</key><string>LaunchBackground</string></dict>
   <key>NSLocationWhenInUseUsageDescription</key><string>Tally uses your location to find aircraft crossing your sky.</string>
   <key>NSLocationAlwaysAndWhenInUseUsageDescription</key><string>Optional radar sessions can record aircraft encounters while Tally is not open.</string>
+  <key>NSCameraUsageDescription</key><string>Point &amp; Shoot uses the camera and compass to lock onto an aircraft contact in your sky.</string>
   <key>UIBackgroundModes</key><array><string>location</string><string>fetch</string><string>remote-notification</string></array>
   <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
 </dict>

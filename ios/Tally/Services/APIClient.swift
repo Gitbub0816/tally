@@ -84,7 +84,7 @@ private struct EncounterPayload: Decodable {
           registration: registration, airline: operator_name ?? "Private", livery: nil, yearBuilt: 0, engines: "Aircraft data pending",
           cruiseSpeedKnots: 0, rangeNauticalMiles: 0, seats: 0), flightNumber: flight_number ?? "—", origin: origin_iata ?? "—",
           destination: destination_iata ?? "—", capturedAt: date, distanceMiles: 0, altitudeFeet: altitude_feet ?? 0,
-          headingDegrees: 0, rarity: rarity, rarityScore: rarity_score, rarityReasons: ["Scored from current type, operator, and local scarcity"],
+          headingDegrees: 0, bearingDegrees: 0, rarity: rarity, rarityScore: rarity_score, rarityReasons: ["Scored from current type, operator, and local scarcity"],
           palette: colors, isCollected: collected_at != nil)
     }
     enum CodingKeys: String, CodingKey {

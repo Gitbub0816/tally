@@ -3,21 +3,30 @@ import SwiftUI
 struct AircraftCardView: View {
     let encounter: Encounter
     @Binding var showingBack: Bool
+    @GestureState private var dragRotation = 0.0
 
     var body: some View {
         ZStack {
-            if showingBack { back.transition(.opacity.combined(with: .scale(scale: 0.975))) }
-            else { front.transition(.opacity.combined(with: .scale(scale: 0.975))) }
+            front
+                .opacity(showingBack ? 0 : 1)
+                .rotation3DEffect(.degrees((showingBack ? -180 : 0) + dragRotation), axis: (x: 0, y: 1, z: 0), perspective: 0.55)
+            back
+                .opacity(showingBack ? 1 : 0)
+                .rotation3DEffect(.degrees((showingBack ? 0 : 180) + dragRotation), axis: (x: 0, y: 1, z: 0), perspective: 0.55)
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(0.685, contentMode: .fit)
-        .animation(.spring(response: 0.42, dampingFraction: 0.86), value: showingBack)
+        .animation(.spring(response: 0.55, dampingFraction: 0.82), value: showingBack)
         .contentShape(Rectangle())
-        .gesture(DragGesture(minimumDistance: 20).onEnded { value in
-            if value.translation.height < -35 { showingBack = true }
-            if value.translation.height > 35 { showingBack = false }
-        })
-        .onTapGesture { showingBack.toggle() }
+        .gesture(
+            DragGesture(minimumDistance: 12)
+                .updating($dragRotation) { value, state, _ in state = Double(value.translation.width / 2.2) }
+                .onEnded { value in
+                    if value.translation.width < -45 { withAnimation { showingBack = true } }
+                    else if value.translation.width > 45 { withAnimation { showingBack = false } }
+                }
+        )
+        .simultaneousGesture(TapGesture().onEnded { withAnimation { showingBack.toggle() } })
         .accessibilityAction(named: showingBack ? "Show card front" : "Show aircraft dossier") { showingBack.toggle() }
     }
 
@@ -57,7 +66,7 @@ struct AircraftCardView: View {
                             .foregroundStyle(.white.opacity(0.84))
                             .padding(.leading, 21).padding(.top, 20)
                         Spacer()
-                        AircraftArtwork(encounter: encounter)
+                        AircraftMeshView(encounter: encounter)
                             .padding(.horizontal, 8)
                             .padding(.bottom, 2)
                     }
