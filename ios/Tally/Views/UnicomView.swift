@@ -77,7 +77,7 @@ struct TransmissionComposer: View {
                     }.disabled(selectedEncounter == nil || message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || message.count > 500 || store.isWorking)
                 }
             }
-        }.preferredColorScheme(.dark)
+        }
     }
 }
 

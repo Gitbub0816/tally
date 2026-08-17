@@ -3,6 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleDisplayName</key><string>Tally</string>
+  <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
   <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
   <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
   <key>CFBundlePackageType</key><string>APPL</string>
@@ -12,6 +13,7 @@
   <key>UILaunchScreen</key><dict><key>UIColorName</key><string>LaunchBackground</string></dict>
   <key>NSLocationWhenInUseUsageDescription</key><string>Tally uses your location to find aircraft crossing your sky.</string>
   <key>NSLocationAlwaysAndWhenInUseUsageDescription</key><string>Optional radar sessions can record aircraft encounters while Tally is not open.</string>
+  <key>NSCameraUsageDescription</key><string>Point &amp; Shoot uses the camera and compass to lock onto an aircraft contact in your sky.</string>
   <key>UIBackgroundModes</key><array><string>location</string><string>fetch</string><string>remote-notification</string></array>
   <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
 </dict>

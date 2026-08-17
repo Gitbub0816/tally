@@ -5,6 +5,7 @@ import Foundation
 final class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var authorization: CLAuthorizationStatus
     @Published private(set) var location: CLLocation?
+    @Published private(set) var heading: CLHeading?
     @Published private(set) var errorMessage: String?
 
     private let manager = CLLocationManager()
@@ -26,6 +27,10 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
             requestAccess(); return
         }
         manager.startUpdatingLocation()
+        if CLLocationManager.headingAvailable() {
+            manager.headingFilter = 1
+            manager.startUpdatingHeading()
+        }
         if authorization == .authorizedAlways {
             manager.allowsBackgroundLocationUpdates = true
             manager.pausesLocationUpdatesAutomatically = true
@@ -34,6 +39,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
     func stopUpdates() {
         manager.stopUpdatingLocation()
+        manager.stopUpdatingHeading()
         manager.allowsBackgroundLocationUpdates = false
     }
 
@@ -46,8 +52,11 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         location = locations.last
     }
 
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        heading = newHeading
+    }
+
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         errorMessage = error.localizedDescription
     }
 }
-

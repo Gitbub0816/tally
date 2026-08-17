@@ -39,3 +39,9 @@ jobs:
       - run: brew install xcodegen
       - run: xcodegen generate
       - run: xcodebuild build -project Tally.xcodeproj -scheme Tally -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+      - name: Validate installable app bundle
+        run: |
+          APP_PATH="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Debug-iphonesimulator/Tally.app' -type d -print -quit)"
+          test -n "$APP_PATH"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist")" = "Tally"
+          test -x "$APP_PATH/Tally"

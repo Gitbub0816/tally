@@ -33,6 +33,7 @@ struct Encounter: Identifiable, Codable, Hashable {
     let distanceMiles: Double
     let altitudeFeet: Int
     let headingDegrees: Int
+    let bearingDegrees: Int
     let rarity: RarityTier
     let rarityScore: Int
     let rarityReasons: [String]
