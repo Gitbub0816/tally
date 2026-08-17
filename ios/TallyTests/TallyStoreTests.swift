@@ -34,8 +34,14 @@ final class TallyStoreTests: XCTestCase {
         let unverifiedVariant = aircraft(manufacturer: "Airbus", model: "A320neo")
         XCTAssertNil(AircraftModelAsset.resolve(for: unverifiedVariant))
 
-        let unmatchedBoeing = aircraft(manufacturer: "Boeing", model: "737-800")
-        XCTAssertNil(AircraftModelAsset.resolve(for: unmatchedBoeing))
+        let boeing737 = aircraft(manufacturer: "Boeing", model: "737-800")
+        XCTAssertEqual(AircraftModelAsset.resolve(for: boeing737), .boeing737800)
+
+        let boeing757 = aircraft(manufacturer: "Boeing", model: "757-200")
+        XCTAssertEqual(AircraftModelAsset.resolve(for: boeing757), .boeing757200)
+
+        let unverifiedBoeingVariant = aircraft(manufacturer: "Boeing", model: "737-700")
+        XCTAssertNil(AircraftModelAsset.resolve(for: unverifiedBoeingVariant))
     }
 
     private func aircraft(manufacturer: String, model: String) -> Aircraft {
