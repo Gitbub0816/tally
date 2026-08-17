@@ -23,4 +23,26 @@ final class TallyStoreTests: XCTestCase {
         store.stopRadarSession()
         XCTAssertNil(store.radarSession)
     }
+
+    func testAircraftAssetsResolveOnlyApprovedTypes() {
+        let a220 = SeedData.encounters.first { $0.aircraft.model == "A220-300" }!.aircraft
+        XCTAssertEqual(AircraftModelAsset.resolve(for: a220), .airbusA220300)
+
+        let exactA320 = aircraft(manufacturer: "Airbus", model: "A320-200")
+        XCTAssertEqual(AircraftModelAsset.resolve(for: exactA320), .airbusA320200)
+
+        let unverifiedVariant = aircraft(manufacturer: "Airbus", model: "A320neo")
+        XCTAssertNil(AircraftModelAsset.resolve(for: unverifiedVariant))
+
+        let unmatchedBoeing = aircraft(manufacturer: "Boeing", model: "737-800")
+        XCTAssertNil(AircraftModelAsset.resolve(for: unmatchedBoeing))
+    }
+
+    private func aircraft(manufacturer: String, model: String) -> Aircraft {
+        Aircraft(
+            id: "TEST", manufacturer: manufacturer, model: model, variant: model,
+            registration: "N00000", airline: "Test", livery: nil, yearBuilt: 0,
+            engines: "Test", cruiseSpeedKnots: 0, rangeNauticalMiles: 0, seats: 0
+        )
+    }
 }

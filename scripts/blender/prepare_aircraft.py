@@ -102,6 +102,35 @@ def optimize(objects: list[bpy.types.Object], target_faces: int) -> None:
                 item.modifiers.remove(modifier)
 
 
+def neutralize_materials(objects: list[bpy.types.Object]) -> None:
+    """Keep material slots/UVs while removing unavailable source imagery."""
+    materials = {
+        slot.material
+        for item in objects
+        for slot in item.material_slots
+        if slot.material is not None
+    }
+    for material in materials:
+        material.use_nodes = True
+        nodes = material.node_tree.nodes
+        nodes.clear()
+        output = nodes.new("ShaderNodeOutputMaterial")
+        shader = nodes.new("ShaderNodeBsdfPrincipled")
+        shader.inputs["Base Color"].default_value = (0.72, 0.75, 0.78, 1.0)
+        metallic_input = shader.inputs.get("Metallic")
+        if metallic_input is None:
+            metallic_input = shader.inputs.get("Metallic IOR Level")
+        if metallic_input is not None:
+            metallic_input.default_value = 0.08
+        shader.inputs["Roughness"].default_value = 0.42
+        material.node_tree.links.new(shader.outputs["BSDF"], output.inputs["Surface"])
+        material.diffuse_color = (0.72, 0.75, 0.78, 1.0)
+
+    for image in list(bpy.data.images):
+        if image.users == 0:
+            bpy.data.images.remove(image)
+
+
 def report_for(source: Path, objects: list[bpy.types.Object]) -> dict[str, object]:
     minimum, maximum = world_bounds(objects)
     materials = sorted(
@@ -163,6 +192,7 @@ def main() -> None:
         raise RuntimeError(f"No mesh objects were imported from {args.input}")
     normalize(objects)
     optimize(objects, args.target_faces)
+    neutralize_materials(objects)
     export_usdz(args.output, objects)
     payload = report_for(args.input, objects)
     payload["output"] = args.output.name

@@ -1,8 +1,101 @@
+import Combine
+import RealityKit
 import SceneKit
 import SwiftUI
 import UIKit
 
-struct AircraftMeshView: UIViewRepresentable {
+struct AircraftMeshView: View {
+    let encounter: Encounter
+    var compact = false
+
+    @ViewBuilder
+    var body: some View {
+        if let asset = AircraftModelAsset.resolve(for: encounter.aircraft) {
+            RealityKitAircraftView(asset: asset, encounter: encounter, compact: compact)
+        } else {
+            ProceduralAircraftMeshView(encounter: encounter, compact: compact)
+        }
+    }
+}
+
+private struct RealityKitAircraftView: UIViewRepresentable {
+    let asset: AircraftModelAsset
+    let encounter: Encounter
+    let compact: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> ARView {
+        let view = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
+        view.backgroundColor = .clear
+        view.isOpaque = false
+        view.environment.background = .color(.clear)
+        view.isUserInteractionEnabled = false
+        context.coordinator.load(asset: asset, encounter: encounter, compact: compact, into: view)
+        return view
+    }
+
+    func updateUIView(_ view: ARView, context: Context) {
+        guard context.coordinator.loadedAsset != asset else { return }
+        context.coordinator.load(asset: asset, encounter: encounter, compact: compact, into: view)
+    }
+
+    static func dismantleUIView(_ view: ARView, coordinator: Coordinator) {
+        coordinator.subscription?.cancel()
+        view.scene.anchors.removeAll()
+    }
+
+    final class Coordinator {
+        var loadedAsset: AircraftModelAsset?
+        var subscription: AnyCancellable?
+
+        func load(asset: AircraftModelAsset, encounter: Encounter, compact: Bool, into view: ARView) {
+            subscription?.cancel()
+            loadedAsset = asset
+            view.scene.anchors.removeAll()
+            view.accessibilityIdentifier = "aircraft-model-\(asset.rawValue)"
+            view.isAccessibilityElement = true
+            view.accessibilityLabel = "3D model of \(encounter.aircraft.displayModel)"
+
+            let anchor = AnchorEntity(world: .zero)
+            addCameraAndLighting(to: anchor, compact: compact)
+            view.scene.addAnchor(anchor)
+
+            subscription = Entity.loadAsync(named: asset.rawValue, in: .main)
+                .receive(on: RunLoop.main)
+                .sink { [weak view] completion in
+                    if case .failure = completion {
+                        view?.accessibilityValue = "Model unavailable"
+                    }
+                } receiveValue: { entity in
+                    entity.position = [0, compact ? -0.2 : -0.35, 0]
+                    entity.orientation = simd_quatf(angle: -0.09, axis: [1, 0, 0])
+                        * simd_quatf(angle: -0.06, axis: [0, 0, 1])
+                    anchor.addChild(entity)
+                }
+        }
+
+        private func addCameraAndLighting(to anchor: AnchorEntity, compact: Bool) {
+            let camera = PerspectiveCamera()
+            camera.camera.fieldOfViewInDegrees = compact ? 32 : 29
+            camera.look(at: [0, 0, 0], from: [0, 0.7, compact ? 20 : 19], relativeTo: nil)
+            anchor.addChild(camera)
+
+            let key = DirectionalLight()
+            key.light.intensity = 1_250
+            key.look(at: [0, 0, 0], from: [-4, 6, 8], relativeTo: nil)
+            anchor.addChild(key)
+
+            let fill = PointLight()
+            fill.light.intensity = 420
+            fill.light.attenuationRadius = 30
+            fill.position = [4, 2, 8]
+            anchor.addChild(fill)
+        }
+    }
+}
+
+private struct ProceduralAircraftMeshView: UIViewRepresentable {
     let encounter: Encounter
     var compact = false
 

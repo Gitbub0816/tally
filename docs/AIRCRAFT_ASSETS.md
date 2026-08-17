@@ -81,6 +81,19 @@ The procedural C++ mesh remains a fallback/debug renderer only. Production cards
 must use an approved authored aircraft asset so a 737 can never be represented by
 a generic or incorrect silhouette.
 
+## Bundled RealityKit assets
+
+The verified exports below are bundled with the iOS target and resolved only for
+an exact approved aircraft type. Any unmatched type continues to use the
+procedural fallback until its source geometry is identified conclusively.
+
+| Aircraft | Bundled USDZ |
+| --- | --- |
+| Airbus A220-300 | `airbus_a220_300.usdz` |
+| Airbus A320-200 | `airbus_a320_200.usdz` |
+| Airbus A380 | `airbus_a380.usdz` |
+| Cessna 152 | `cessna_152.usdz` |
+
 ## One-command conversion
 
 No Blender UI knowledge is required. On macOS, install Blender once and run the
@@ -92,8 +105,10 @@ scripts/process_aircraft_assets.sh /path/to/3d-models.zip
 ```
 
 The processor opens each FBX in Blender's background mode, removes non-mesh scene
-objects, normalizes the model, smooths and reduces oversized geometry, exports a
-mobile USDZ, and writes a JSON audit under `build/aircraft-reports`. It never
+objects, normalizes the model, removes unavailable legacy image references while
+preserving UVs and material slots, smooths and reduces oversized geometry,
+exports a neutral mobile USDZ, and writes a JSON audit under
+`build/aircraft-reports`. It never
 requires interacting with Blender's interface. When it finishes, upload the
 generated `build/tally-aircraft-output.zip` to Codex so the optimized models can
 be verified, identified, and wired into the RealityKit renderer.
