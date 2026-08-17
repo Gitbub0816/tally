@@ -53,6 +53,7 @@ struct SettingsView: View {
     @AppStorage("tally.auto.widebody") private var autoWidebody = true
     @AppStorage("tally.auto.rare") private var autoRare = true
     @AppStorage("tally.notifications") private var notifications = true
+    @AppStorage("tally.appearance") private var appearance = "system"
 
     var body: some View {
         Form {
@@ -67,6 +68,11 @@ struct SettingsView: View {
                 Text("Public transmissions show airport or city context, never your exact collection location.").font(.caption).foregroundStyle(TallyTheme.muted)
             }
             Section("Environment") {
+                Picker("Appearance", selection: $appearance) {
+                    Text("System").tag("system")
+                    Text("Light").tag("light")
+                    Text("Dark").tag("dark")
+                }
                 LabeledContent("Data mode", value: store.environment.isDemo ? "Demo" : "Live API")
                 LabeledContent("Card renderer", value: "Native + C++")
                 if store.isSignedIn { Button("Sign out", role: .destructive) { store.signOut() } }

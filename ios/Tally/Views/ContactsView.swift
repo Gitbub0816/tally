@@ -71,26 +71,8 @@ struct ContactsView: View {
     }
 
     private var radar: some View {
-        ZStack {
-            ForEach([0.28, 0.52, 0.76, 1.0], id: \.self) { scale in
-                Circle().stroke(TallyTheme.olive.opacity(0.35), lineWidth: 0.7).scaleEffect(scale)
-            }
-            Path { path in
-                path.move(to: CGPoint(x: 160, y: 10)); path.addLine(to: CGPoint(x: 160, y: 310))
-                path.move(to: CGPoint(x: 10, y: 160)); path.addLine(to: CGPoint(x: 310, y: 160))
-            }.stroke(TallyTheme.olive.opacity(0.22), lineWidth: 0.7)
-            Circle().fill(TallyTheme.phosphor).frame(width: 7).offset(x: 42, y: -68)
-            Circle().fill(TallyTheme.brass).frame(width: 7).offset(x: -92, y: 32)
-            Image(systemName: "airplane").foregroundStyle(TallyTheme.bone).rotationEffect(.degrees(24)).offset(x: 77, y: 81)
-            VStack { HStack { Text("N").microLabel(); Spacer() }; Spacer() }.padding(12)
-        }
-        .frame(height: 320)
-        .background(
-            RadialGradient(colors: [TallyTheme.olive.opacity(0.15), TallyTheme.panel], center: .center, startRadius: 5, endRadius: 190),
-            in: RoundedRectangle(cornerRadius: 160)
-        )
-        .overlay(Circle().stroke(TallyTheme.olive.opacity(0.6)))
-        .padding(.horizontal, 8)
+        RadarScope(encounters: Array(store.encounters.prefix(5)))
+            .frame(height: 340).padding(.horizontal, 2)
     }
 
     private var prioritySection: some View {
@@ -119,11 +101,10 @@ struct ContactRow: View {
 
     var body: some View {
         HStack(spacing: 13) {
-            Image(systemName: "airplane")
-                .rotationEffect(.degrees(Double(encounter.headingDegrees - 90)))
-                .frame(width: 38, height: 38)
-                .background(TallyTheme.elevated, in: Circle())
-                .foregroundStyle(encounter.rarityScore >= 70 ? TallyTheme.brass : TallyTheme.bone)
+            AircraftArtwork(encounter: encounter, compact: true)
+                .frame(width: 58, height: 38)
+                .padding(5)
+                .background(Color(hex: encounter.palette.primaryHex).opacity(0.22), in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(encounter.aircraft.livery ?? encounter.aircraft.airline)
@@ -146,5 +127,93 @@ struct ContactRow: View {
         }
         .padding(14)
         .background(TallyTheme.panel, in: RoundedRectangle(cornerRadius: 15))
+    }
+}
+
+private struct RadarScope: View {
+    let encounters: [Encounter]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: reduceMotion ? 1 : 1.0 / 24.0)) { context in
+            let phase = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 6) / 6
+            scope(angle: reduceMotion ? 42 : phase * 360)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Radar showing \(encounters.count) nearby aircraft contacts")
+    }
+
+    private func scope(angle: Double) -> some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            let radius = side * 0.47
+            ZStack {
+                Circle().fill(RadialGradient(colors: [TallyTheme.olive.opacity(0.2), TallyTheme.panel], center: .center, startRadius: 2, endRadius: radius))
+                ForEach(1...4, id: \.self) { ring in
+                    Circle().stroke(TallyTheme.olive.opacity(0.42), style: StrokeStyle(lineWidth: 0.75, dash: ring == 4 ? [3, 3] : []))
+                        .frame(width: radius * 2 * CGFloat(ring) / 4, height: radius * 2 * CGFloat(ring) / 4)
+                }
+                Path { path in
+                    path.move(to: CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2 - radius)); path.addLine(to: CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2 + radius))
+                    path.move(to: CGPoint(x: proxy.size.width / 2 - radius, y: proxy.size.height / 2)); path.addLine(to: CGPoint(x: proxy.size.width / 2 + radius, y: proxy.size.height / 2))
+                }.stroke(TallyTheme.olive.opacity(0.3), lineWidth: 0.65)
+                SweepWedge().fill(AngularGradient(colors: [TallyTheme.phosphor.opacity(0), TallyTheme.phosphor.opacity(0.25)], center: .center))
+                    .frame(width: radius * 2, height: radius * 2).rotationEffect(.degrees(angle))
+                Rectangle().fill(LinearGradient(colors: [TallyTheme.phosphor.opacity(0), TallyTheme.phosphor], startPoint: .leading, endPoint: .trailing))
+                    .frame(width: radius, height: 1).offset(x: radius / 2).rotationEffect(.degrees(angle - 90))
+                ForEach(Array(encounters.enumerated()), id: \.element.id) { index, encounter in
+                    let bearing = Double(encounter.headingDegrees + index * 47) * .pi / 180
+                    let contactRadius = CGFloat(min(max(encounter.distanceMiles / 12, 0.16), 0.9)) * radius
+                    RadarBlip(encounter: encounter)
+                        .offset(x: CGFloat(cos(bearing)) * contactRadius, y: CGFloat(sin(bearing)) * contactRadius)
+                }
+                Circle().fill(TallyTheme.phosphor).frame(width: 8, height: 8)
+                    .overlay(Circle().stroke(TallyTheme.phosphor.opacity(0.4), lineWidth: 7))
+                VStack {
+                    HStack { Text("N"); Spacer(); Text("12 NM") }.padding(.horizontal, 14)
+                    Spacer()
+                    HStack { Text("270°"); Spacer(); Text("090°") }.padding(.horizontal, 12)
+                }.padding(.vertical, 10).font(.system(size: 7, weight: .bold, design: .monospaced)).foregroundStyle(TallyTheme.muted)
+            }
+            .frame(width: side, height: side).position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            .overlay(alignment: .bottomLeading) {
+                HStack(spacing: 12) {
+                    Label("LIVE", systemImage: "dot.radiowaves.left.and.right")
+                    Text("BNA  /  36.126°N 86.677°W")
+                }.font(.system(size: 7.5, weight: .bold, design: .monospaced)).tracking(0.7).foregroundStyle(TallyTheme.muted).padding(12)
+            }
+        }
+    }
+}
+
+private struct RadarBlip: View {
+    let encounter: Encounter
+    var body: some View {
+        HStack(spacing: 4) {
+            DiamondBlip().fill(encounter.rarityScore >= 70 ? TallyTheme.brass : TallyTheme.phosphor).frame(width: 8, height: 8)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(encounter.aircraft.registration)
+                Text("\(encounter.altitudeFeet / 100) · \(encounter.headingDegrees)°")
+            }.font(.system(size: 6.5, weight: .bold, design: .monospaced)).foregroundStyle(TallyTheme.bone)
+        }.padding(4).background(TallyTheme.panel.opacity(0.78), in: RoundedRectangle(cornerRadius: 4))
+    }
+}
+
+private struct SweepWedge: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            let center = CGPoint(x: rect.midX, y: rect.midY), radius = min(rect.width, rect.height) / 2
+            path.move(to: center)
+            path.addArc(center: center, radius: radius, startAngle: .degrees(-110), endAngle: .degrees(-90), clockwise: false)
+            path.closeSubpath()
+        }
+    }
+}
+
+private struct DiamondBlip: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.midX, y: rect.minY)); path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY)); path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY)); path.addLine(to: CGPoint(x: rect.minX, y: rect.midY)); path.closeSubpath()
+        }
     }
 }
