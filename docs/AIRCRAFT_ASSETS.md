@@ -9,7 +9,10 @@ The original aircraft archive is credited to
 [2001kraft on CGTrader](https://www.cgtrader.com/designers/2001kraft), except the
 Airbus A220-300. The separately supplied Boeing 787 Dreamliner is by
 [iSteven on Sketchfab](https://sketchfab.com/OneSteven) and is licensed
-[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The A220
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The bundled
+Boeing 737 family card mesh is the `B737_nologo.glb` asset from
+[amvlab/aircraft-models](https://github.com/amvlab/aircraft-models), licensed
+[CC BY 4.0](https://github.com/amvlab/aircraft-models/blob/main/LICENSE). The A220
 attribution must remain separate once its original listing/author is recorded.
 
 The source archive was supplied by the project owner from free-download
@@ -25,7 +28,7 @@ should be independently authored.
 | Aircraft | FBX source | Matching OBJ | Evidence |
 | --- | --- | --- | --- |
 | Airbus A220-300 | `source/AIRBUS A220-300.fbx` | — | Filename, node names, and material names |
-| Boeing 737-800 / 737-839B | `3d-model-3.fbx` | `3d-model-4.obj` | Geometry and archive date match the creator's [Central Airlines Boeing 737-839B Interior](https://www.cgtrader.com/free-3d-models/aircraft/commercial-aircraft/central-airlines-boeing-737-839b-interior--2) listing |
+| Rejected former 737 assignment | `3d-model-3.fbx` | `3d-model-4.obj` | Removed from the 737 resolver after device renders disproved the identity. Generic filenames and listing dates are not sufficient identity evidence. |
 | Boeing 757-200 | `3d-model-2.fbx` | `3d-model-3.obj` | Long narrow-body geometry and archive date match the creator's [Template Boeing 757-200](https://www.cgtrader.com/free-3d-models/aircraft/commercial-aircraft/template-boeing-757-200) listing |
 | Boeing 787 Dreamliner / 787-9 card asset | `Boeing 787 Dreamliner.fbx` / supplied GLB | — | Aircraft identity is explicit in the supplied archive and model scene names; source: [iSteven](https://sketchfab.com/3d-models/boeing-787-dreamliner-3ba8a5275d0e41968b34d367c34e8f0f), CC BY-NC 4.0 |
 | Airbus A320-200 | `3d-model-8.fbx` | `3d-model-9.obj` | Embedded `Thai Airways International Airbus A320-200 Aircraft` node names |
@@ -75,12 +78,15 @@ by matching FBX model-node counts to OBJ group counts:
 
 1. Import FBX (or the A220 GLB) into Blender as source geometry.
 2. Confirm aircraft identity from geometry and record it above.
-3. Normalize scale, forward axis, origin, normals, and smoothing.
+3. Record each asset's source axes, then normalize scale and origin without
+   assuming different aircraft share the same forward axis.
 4. Remove interiors, hidden geometry, landing-gear detail, and unused materials
    from the card-render version.
 5. Split stable material regions such as fuselage, wings, engines, tail, glass,
    and metal. UV unwrap or rebuild only where necessary.
-6. Produce independently authored Tally livery atlases and mobile LODs.
+6. Produce independently authored Tally livery atlases against the model's UVs
+   and assign them to mesh materials. Never simulate paint with a foreground
+   `SCNPlane` or another screen-facing overlay.
 7. Export USDZ for RealityKit and render a transparent, deterministic card image
    from the same approved model.
 8. Preserve the source-to-export mapping and attribution in this document.
@@ -97,9 +103,21 @@ procedural fallback until its source geometry is identified conclusively.
 
 | Aircraft | Bundled USDZ |
 | --- | --- |
-| Boeing 737-800 | `boeing_737_800.usdz` |
+| Boeing 737-700 / 737-800 card representation | `boeing_737_ng.usdz` |
 | Boeing 757-200 | `boeing_757_200.usdz` |
 | Boeing 787-9 | `boeing_787_9.usdz` |
+
+The 737 card representation is a verified Boeing 737 family model with the
+characteristic narrow-body proportions, low-slung engines, and NG-style
+winglets. It intentionally uses a family-level filename because its upstream
+source does not claim an exact -700 or -800 subvariant. The app still presents
+the encounter's exact subtype in card copy; the visual resolver must not invent
+precision that the source asset does not provide.
+
+The bundled 737 and 787 liveries are PNG atlases under
+`Resources/AircraftLiveries`. `AircraftMeshView` assigns these images directly
+to the USDZ geometry materials while preserving the source UV transforms. The
+737 uses a Z-axis side camera; the 787 uses an X-axis side camera.
 
 The earlier Airbus A220-300, A320-200, A380, and Cessna 152 exports were
 truncated ZIP containers and have been removed from the app bundle. Those exact

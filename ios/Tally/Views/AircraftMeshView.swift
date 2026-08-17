@@ -36,13 +36,13 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
-        let identifier = asset.rawValue + encounter.aircraft.registration
+        let identifier = asset.rawValue + encounter.aircraft.registration + (encounter.aircraft.livery ?? "")
         guard view.accessibilityIdentifier != identifier else { return }
         load(into: view)
     }
 
     private func load(into view: SCNView) {
-        let identifier = asset.rawValue + encounter.aircraft.registration
+        let identifier = asset.rawValue + encounter.aircraft.registration + (encounter.aircraft.livery ?? "")
         view.accessibilityIdentifier = identifier
         view.isAccessibilityElement = true
         view.accessibilityLabel = "3D model of \(encounter.aircraft.displayModel)"
@@ -78,6 +78,7 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
             model.addChildNode(child)
         }
         scene.rootNode.addChildNode(model)
+        applyBundledLivery(to: model)
 
         let (minimum, maximum) = model.boundingBox
         let center = SCNVector3(
@@ -90,22 +91,31 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
         model.pivot = SCNMatrix4MakeTranslation(center.x, center.y, center.z)
         model.scale = SCNVector3(scale, scale, scale)
         model.position = SCNVector3(0, compact ? -0.1 : -0.25, 0)
-        model.eulerAngles = SCNVector3(-0.09, asset.presentationYawRadians, -0.06)
+        model.eulerAngles = SCNVector3Zero
 
         let camera = SCNCamera()
         camera.fieldOfView = compact ? 34 : 31
         let cameraNode = SCNNode()
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(0, 0.45, compact ? 14.5 : 13.5)
+        cameraNode.position = cameraPosition
+        cameraNode.look(at: model.position)
         scene.rootNode.addChildNode(cameraNode)
 
+        let ambient = SCNLight()
+        ambient.type = .ambient
+        ambient.intensity = 620
+        ambient.color = UIColor(white: 0.92, alpha: 1)
+        let ambientNode = SCNNode()
+        ambientNode.light = ambient
+        scene.rootNode.addChildNode(ambientNode)
+
         let key = SCNLight()
-        key.type = .directional
-        key.intensity = 1_250
+        key.type = .omni
+        key.intensity = 900
         key.color = UIColor.white
         let keyNode = SCNNode()
         keyNode.light = key
-        keyNode.eulerAngles = SCNVector3(-0.7, -0.55, 0)
+        keyNode.position = cameraPosition
         scene.rootNode.addChildNode(keyNode)
 
         let fill = SCNLight()
@@ -116,6 +126,77 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
         fillNode.light = fill
         fillNode.position = SCNVector3(-3, 2, 4)
         scene.rootNode.addChildNode(fillNode)
+    }
+
+    private var cameraPosition: SCNVector3 {
+        let distance: Float = compact ? 14.5 : 13.5
+        switch asset {
+        case .boeing737NG:
+            // The verified 737 source is X-forward with Z-spanning wings.
+            return SCNVector3(0, 0.35, distance)
+        case .boeing757200, .boeing7879:
+            // These source scenes are Z-forward with X-spanning wings.
+            return SCNVector3(distance, 0.35, 0)
+        }
+    }
+
+    private func applyBundledLivery(to model: SCNNode) {
+        let fuselageTexture: UIImage?
+        let tailTexture: UIImage?
+        switch asset {
+        case .boeing737NG:
+            fuselageTexture = bundledImage(named: encounter.aircraft.livery == "Classic Canyon Blue"
+                ? "boeing_737_classic_canyon_blue"
+                : "boeing_737_tennessee_one")
+            tailTexture = nil
+        case .boeing7879:
+            fuselageTexture = bundledImage(named: "boeing_787_silver_eagle_fuselage")
+            tailTexture = bundledImage(named: "boeing_787_silver_eagle_tail")
+        case .boeing757200:
+            fuselageTexture = nil
+            tailTexture = nil
+        }
+
+        model.enumerateChildNodes { node, _ in
+            guard let geometry = node.geometry else { return }
+            let name = (node.name ?? "").lowercased()
+            let sources = geometry.materials.isEmpty ? [SCNMaterial()] : geometry.materials
+            geometry.materials = sources.map { source in
+                let material = source.copy() as? SCNMaterial ?? SCNMaterial()
+                switch asset {
+                case .boeing737NG:
+                    if let fuselageTexture {
+                        // This asset has one UV-mapped exterior material. Replacing
+                        // its diffuse atlas paints the mesh itself.
+                        material.diffuse.contents = fuselageTexture
+                    }
+                case .boeing7879:
+                    if name.contains("object001"), let fuselageTexture {
+                        material.diffuse.contents = fuselageTexture
+                    } else if name.contains("object008"), let tailTexture {
+                        material.diffuse.contents = tailTexture
+                    }
+                case .boeing757200:
+                    break
+                }
+                material.lightingModel = .physicallyBased
+                material.metalness.contents = 0.08
+                material.roughness.contents = 0.52
+                material.isDoubleSided = true
+                return material
+            }
+        }
+    }
+
+    private func bundledImage(named name: String) -> UIImage? {
+        if let image = UIImage(named: name) { return image }
+        let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "AircraftLiveries")
+            ?? Bundle.main.url(forResource: name, withExtension: "png")
+        guard let url else {
+            aircraftModelLogger.error("Missing bundled livery texture: \(name, privacy: .public).png")
+            return nil
+        }
+        return UIImage(contentsOfFile: url.path)
     }
 }
 
@@ -226,11 +307,12 @@ private enum LiveryTexture {
         }
     }
 
-    private static func star(at center: CGPoint, in context: CGContext) {
+    private static func star(at center: CGPoint, radius: CGFloat = 35, in context: CGContext) {
         let path = UIBezierPath()
         for index in 0..<10 {
-            let angle = CGFloat(index) * .pi / 5 - .pi / 2, radius: CGFloat = index.isMultiple(of: 2) ? 35 : 15
-            let point = CGPoint(x: center.x + cos(angle) * radius, y: center.y + sin(angle) * radius)
+            let angle = CGFloat(index) * .pi / 5 - .pi / 2
+            let pointRadius = index.isMultiple(of: 2) ? radius : radius * 0.43
+            let point = CGPoint(x: center.x + cos(angle) * pointRadius, y: center.y + sin(angle) * pointRadius)
             index == 0 ? path.move(to: point) : path.addLine(to: point)
         }
         path.close(); UIColor.white.setFill(); path.fill()

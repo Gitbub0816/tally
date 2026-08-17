@@ -36,7 +36,10 @@ find "$working_dir" -type f \( -iname '*.fbx' -o -iname '*.glb' \) -not -path '*
       "AIRBUS A220-300") asset_name="airbus_a220_300" ;;
       "airbus_a220-300") continue ;;
       "3d-model-2") asset_name="boeing_757_200" ;;
-      "3d-model-3") asset_name="boeing_737_800" ;;
+      # The archive's generic 3d-model-3 was disproven as a 737 in device
+      # renders. Never regenerate a typed asset from that filename.
+      "3d-model-3") continue ;;
+      "B737_nologo") asset_name="boeing_737_ng" ;;
       "Boeing 787 Dreamliner") asset_name="boeing_787_9" ;;
       "3d-model-4") asset_name="cessna_152" ;;
       "3d-model-8") asset_name="airbus_a320_200" ;;
