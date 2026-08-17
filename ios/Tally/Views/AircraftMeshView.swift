@@ -1,8 +1,9 @@
-import Combine
-import RealityKit
+import OSLog
 import SceneKit
 import SwiftUI
 import UIKit
+
+private let aircraftModelLogger = Logger(subsystem: "app.tally.ios", category: "AircraftModels")
 
 struct AircraftMeshView: View {
     let encounter: Encounter
@@ -11,87 +12,110 @@ struct AircraftMeshView: View {
     @ViewBuilder
     var body: some View {
         if let asset = AircraftModelAsset.resolve(for: encounter.aircraft) {
-            RealityKitAircraftView(asset: asset, encounter: encounter, compact: compact)
+            BundledAircraftMeshView(asset: asset, encounter: encounter, compact: compact)
         } else {
             ProceduralAircraftMeshView(encounter: encounter, compact: compact)
         }
     }
 }
 
-private struct RealityKitAircraftView: UIViewRepresentable {
+private struct BundledAircraftMeshView: UIViewRepresentable {
     let asset: AircraftModelAsset
     let encounter: Encounter
     let compact: Bool
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeUIView(context: Context) -> ARView {
-        let view = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
+    func makeUIView(context: Context) -> SCNView {
+        let view = SCNView()
         view.backgroundColor = .clear
         view.isOpaque = false
-        view.environment.background = .color(.clear)
+        view.antialiasingMode = compact ? .multisampling2X : .multisampling4X
+        view.autoenablesDefaultLighting = false
         view.isUserInteractionEnabled = false
-        context.coordinator.load(asset: asset, encounter: encounter, compact: compact, into: view)
+        load(into: view)
         return view
     }
 
-    func updateUIView(_ view: ARView, context: Context) {
-        guard context.coordinator.loadedAsset != asset else { return }
-        context.coordinator.load(asset: asset, encounter: encounter, compact: compact, into: view)
+    func updateUIView(_ view: SCNView, context: Context) {
+        let identifier = asset.rawValue + encounter.aircraft.registration
+        guard view.accessibilityIdentifier != identifier else { return }
+        load(into: view)
     }
 
-    static func dismantleUIView(_ view: ARView, coordinator: Coordinator) {
-        coordinator.subscription?.cancel()
-        view.scene.anchors.removeAll()
+    private func load(into view: SCNView) {
+        let identifier = asset.rawValue + encounter.aircraft.registration
+        view.accessibilityIdentifier = identifier
+        view.isAccessibilityElement = true
+        view.accessibilityLabel = "3D model of \(encounter.aircraft.displayModel)"
+
+        guard let url = resourceURL else {
+            aircraftModelLogger.error("Missing bundled aircraft model: \(asset.rawValue, privacy: .public).usdz")
+            view.accessibilityValue = "Using fallback model"
+            view.scene = ProceduralAircraftMeshView(encounter: encounter, compact: compact).scene()
+            return
+        }
+
+        do {
+            let scene = try SCNScene(url: url, options: [.checkConsistency: true])
+            prepare(scene: scene)
+            view.scene = scene
+            view.accessibilityValue = "Bundled model loaded"
+            aircraftModelLogger.info("Loaded bundled aircraft model: \(asset.rawValue, privacy: .public).usdz")
+        } catch {
+            aircraftModelLogger.error("Failed to load \(asset.rawValue, privacy: .public).usdz: \(String(describing: error), privacy: .public)")
+            view.accessibilityValue = "Using fallback model"
+            view.scene = ProceduralAircraftMeshView(encounter: encounter, compact: compact).scene()
+        }
     }
 
-    final class Coordinator {
-        var loadedAsset: AircraftModelAsset?
-        var subscription: AnyCancellable?
+    private var resourceURL: URL? {
+        Bundle.main.url(forResource: asset.rawValue, withExtension: "usdz")
+            ?? Bundle.main.url(forResource: asset.rawValue, withExtension: "usdz", subdirectory: "AircraftModels")
+    }
 
-        func load(asset: AircraftModelAsset, encounter: Encounter, compact: Bool, into view: ARView) {
-            subscription?.cancel()
-            loadedAsset = asset
-            view.scene.anchors.removeAll()
-            view.accessibilityIdentifier = "aircraft-model-\(asset.rawValue)"
-            view.isAccessibilityElement = true
-            view.accessibilityLabel = "3D model of \(encounter.aircraft.displayModel)"
-
-            let anchor = AnchorEntity(world: .zero)
-            addCameraAndLighting(to: anchor, compact: compact)
-            view.scene.addAnchor(anchor)
-
-            subscription = Entity.loadAsync(named: asset.rawValue, in: .main)
-                .receive(on: RunLoop.main)
-                .sink { [weak view] completion in
-                    if case .failure = completion {
-                        view?.accessibilityValue = "Model unavailable"
-                    }
-                } receiveValue: { entity in
-                    entity.position = [0, compact ? -0.2 : -0.35, 0]
-                    entity.orientation = simd_quatf(angle: -0.09, axis: [1, 0, 0])
-                        * simd_quatf(angle: -0.06, axis: [0, 0, 1])
-                    anchor.addChild(entity)
-                }
+    private func prepare(scene: SCNScene) {
+        let model = SCNNode()
+        for child in scene.rootNode.childNodes {
+            model.addChildNode(child)
         }
+        scene.rootNode.addChildNode(model)
 
-        private func addCameraAndLighting(to anchor: AnchorEntity, compact: Bool) {
-            let camera = PerspectiveCamera()
-            camera.camera.fieldOfViewInDegrees = compact ? 32 : 29
-            camera.look(at: [0, 0, 0], from: [0, 0.7, compact ? 20 : 19], relativeTo: nil)
-            anchor.addChild(camera)
+        let (minimum, maximum) = model.boundingBox
+        let center = SCNVector3(
+            (minimum.x + maximum.x) * 0.5,
+            (minimum.y + maximum.y) * 0.5,
+            (minimum.z + maximum.z) * 0.5
+        )
+        let longest = max(maximum.x - minimum.x, max(maximum.y - minimum.y, maximum.z - minimum.z))
+        let scale = longest > 0 ? 7.4 / longest : 1
+        model.pivot = SCNMatrix4MakeTranslation(center.x, center.y, center.z)
+        model.scale = SCNVector3(scale, scale, scale)
+        model.position = SCNVector3(0, compact ? -0.1 : -0.25, 0)
+        model.eulerAngles = SCNVector3(-0.09, 0, -0.06)
 
-            let key = DirectionalLight()
-            key.light.intensity = 1_250
-            key.look(at: [0, 0, 0], from: [-4, 6, 8], relativeTo: nil)
-            anchor.addChild(key)
+        let camera = SCNCamera()
+        camera.fieldOfView = compact ? 34 : 31
+        let cameraNode = SCNNode()
+        cameraNode.camera = camera
+        cameraNode.position = SCNVector3(0, 0.45, compact ? 14.5 : 13.5)
+        scene.rootNode.addChildNode(cameraNode)
 
-            let fill = PointLight()
-            fill.light.intensity = 420
-            fill.light.attenuationRadius = 30
-            fill.position = [4, 2, 8]
-            anchor.addChild(fill)
-        }
+        let key = SCNLight()
+        key.type = .directional
+        key.intensity = 1_250
+        key.color = UIColor.white
+        let keyNode = SCNNode()
+        keyNode.light = key
+        keyNode.eulerAngles = SCNVector3(-0.7, -0.55, 0)
+        scene.rootNode.addChildNode(keyNode)
+
+        let fill = SCNLight()
+        fill.type = .omni
+        fill.intensity = 420
+        fill.color = UIColor(red: 0.75, green: 0.82, blue: 1, alpha: 1)
+        let fillNode = SCNNode()
+        fillNode.light = fill
+        fillNode.position = SCNVector3(-3, 2, 4)
+        scene.rootNode.addChildNode(fillNode)
     }
 }
 
@@ -117,7 +141,7 @@ private struct ProceduralAircraftMeshView: UIViewRepresentable {
         }
     }
 
-    private func scene() -> SCNScene {
+    fileprivate func scene() -> SCNScene {
         let scene = SCNScene()
         let aircraft = SCNNode(geometry: geometry())
         aircraft.eulerAngles = SCNVector3(-0.10, -0.08, 0)

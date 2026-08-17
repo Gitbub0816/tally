@@ -10,16 +10,21 @@ All aircraft assets in the supplied archive are credited to
 Airbus A220-300. The A220 attribution must remain separate once its original
 listing/author is recorded.
 
-The source archive was supplied by the project owner as free/open-licensed
-material. Keep this attribution in the repository and surface it in the app's
-Credits screen. Do not treat an aircraft manufacturer's or airline's marks as
-part of the mesh license; Tally liveries should be independently authored.
+The source archive was supplied by the project owner from free-download
+listings. The recovered CGTrader listings currently describe the commercial
+aircraft as Editorial License (no AI); “free download” must not be treated as a
+generic open-source license. Keep the listing-specific attribution in the
+repository and surface it in the app's Credits screen. Do not treat an aircraft
+manufacturer's or airline's marks as part of the mesh license; Tally liveries
+should be independently authored.
 
 ## Recovered identities
 
 | Aircraft | FBX source | Matching OBJ | Evidence |
 | --- | --- | --- | --- |
 | Airbus A220-300 | `source/AIRBUS A220-300.fbx` | — | Filename, node names, and material names |
+| Boeing 737-800 / 737-839B | `3d-model-3.fbx` | `3d-model-4.obj` | Geometry and archive date match the creator's [Central Airlines Boeing 737-839B Interior](https://www.cgtrader.com/free-3d-models/aircraft/commercial-aircraft/central-airlines-boeing-737-839b-interior--2) listing |
+| Boeing 757-200 | `3d-model-2.fbx` | `3d-model-3.obj` | Long narrow-body geometry and archive date match the creator's [Template Boeing 757-200](https://www.cgtrader.com/free-3d-models/aircraft/commercial-aircraft/template-boeing-757-200) listing |
 | Airbus A320-200 | `3d-model-8.fbx` | `3d-model-9.obj` | Embedded `Thai Airways International Airbus A320-200 Aircraft` node names |
 | Cessna 152 | `3d-model-4.fbx` | `3d-model-5.obj` | Embedded `Cessna 152` node names |
 | Airbus A380 | `3d-model-10.fbx` | `3d-model-11.obj` | Embedded `Profile-A380-AirFrance...` material and texture reference |
@@ -92,6 +97,8 @@ procedural fallback until its source geometry is identified conclusively.
 | Airbus A220-300 | `airbus_a220_300.usdz` |
 | Airbus A320-200 | `airbus_a320_200.usdz` |
 | Airbus A380 | `airbus_a380.usdz` |
+| Boeing 737-800 | `boeing_737_800.usdz` |
+| Boeing 757-200 | `boeing_757_200.usdz` |
 | Cessna 152 | `cessna_152.usdz` |
 
 ## One-command conversion

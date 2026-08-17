@@ -74,7 +74,7 @@ struct SettingsView: View {
                     Text("Dark").tag("dark")
                 }
                 LabeledContent("Data mode", value: store.environment.isDemo ? "Demo" : "Live API")
-                LabeledContent("Card renderer", value: "RealityKit + C++ fallback")
+                LabeledContent("Card renderer", value: "Bundled 3D + C++ fallback")
                 if store.isSignedIn { Button("Sign out", role: .destructive) { store.signOut() } }
             }
             Section("Aircraft credits") {

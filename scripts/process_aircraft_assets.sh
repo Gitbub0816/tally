@@ -32,13 +32,16 @@ mapfile_path="$working_dir/model-map.tsv"
 find "$working_dir" -type f \( -iname '*.fbx' -o -iname '*.glb' \) -not -path '*/__MACOSX/*' -print0 |
   while IFS= read -r -d '' source; do
     basename_without_extension="$(basename "${source%.*}")"
-    if [[ "$basename_without_extension" == "AIRBUS A220-300" ]]; then
-      asset_name="airbus_a220_300"
-    elif [[ "$basename_without_extension" == "airbus_a220-300" ]]; then
-      continue
-    else
-      asset_name="$(printf '%s' "$basename_without_extension" | tr '[:upper:] ' '[:lower:]_' | tr -cd 'a-z0-9_-')"
-    fi
+    case "$basename_without_extension" in
+      "AIRBUS A220-300") asset_name="airbus_a220_300" ;;
+      "airbus_a220-300") continue ;;
+      "3d-model-2") asset_name="boeing_757_200" ;;
+      "3d-model-3") asset_name="boeing_737_800" ;;
+      "3d-model-4") asset_name="cessna_152" ;;
+      "3d-model-8") asset_name="airbus_a320_200" ;;
+      "3d-model-10") asset_name="airbus_a380" ;;
+      *) asset_name="$(printf '%s' "$basename_without_extension" | tr '[:upper:] ' '[:lower:]_' | tr -cd 'a-z0-9_-')" ;;
+    esac
     printf '%s\t%s\n' "$asset_name" "$source"
   done > "$mapfile_path"
 
