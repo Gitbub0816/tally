@@ -1,0 +1,10 @@
+# Copy to .dev.vars. Never commit actual values.
+# DATABASE_URL is used to provision Hyperdrive, not read directly by Worker code.
+APPLE_CLIENT_ID=app.tally.ios
+SESSION_SIGNING_SECRET=generate-at-least-32-random-bytes
+AIRLABS_API_KEY=replace-me
+INGEST_API_KEY=generate-at-least-32-random-bytes
+APNS_KEY_ID=replace-me
+APNS_TEAM_ID=replace-me
+APNS_BUNDLE_ID=app.tally.ios
+APNS_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\nreplace-me\\n-----END PRIVATE KEY-----"

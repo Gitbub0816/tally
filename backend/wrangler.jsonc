@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tally-edge",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "API_VERSION": "v1"
+  },
+  "hyperdrive": [
+    { "binding": "DATABASE", "id": "00000000000000000000000000000000" }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "FREQUENCIES", "class_name": "FrequencyRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["FrequencyRoom"] }
+  ],
+  "queues": {
+    "producers": [
+      { "binding": "ENCOUNTER_EVENTS", "queue": "tally-encounter-events" }
+    ],
+    "consumers": [
+      { "queue": "tally-encounter-events", "max_batch_size": 50, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "tally-encounter-events-dlq" }
+    ]
+  },
+  "r2_buckets": [
+    { "binding": "CARD_ASSETS", "bucket_name": "tally-card-assets" }
+  ],
+  "triggers": { "crons": ["*/2 * * * *"] }
+}

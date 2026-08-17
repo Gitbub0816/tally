@@ -1,0 +1,10 @@
+.DS_Store
+DerivedData/
+.build/
+*.xcuserstate
+xcuserdata/
+backend/node_modules/
+backend/.dev.vars
+backend/worker-configuration.d.ts
+cpp/build/
+
