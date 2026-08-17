@@ -45,7 +45,14 @@ jobs:
           test -n "$APP_PATH"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist")" = "Tally"
           test -x "$APP_PATH/Tally"
-          for model in boeing_737_800 boeing_757_200 boeing_787_9; do
+          for model in boeing_737_ng boeing_757_200 boeing_787_9; do
             test -f "$APP_PATH/$model.usdz"
             unzip -tq "$APP_PATH/$model.usdz"
+          done
+          for texture in \
+            boeing_737_tennessee_one.png \
+            boeing_737_classic_canyon_blue.png \
+            boeing_787_silver_eagle_fuselage.png \
+            boeing_787_silver_eagle_tail.png; do
+            test -f "$APP_PATH/$texture"
           done

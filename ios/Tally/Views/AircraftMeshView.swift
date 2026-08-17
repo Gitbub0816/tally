@@ -36,13 +36,13 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
-        let identifier = asset.rawValue + encounter.aircraft.registration
+        let identifier = asset.rawValue + encounter.aircraft.registration + (encounter.aircraft.livery ?? "")
         guard view.accessibilityIdentifier != identifier else { return }
         load(into: view)
     }
 
     private func load(into view: SCNView) {
-        let identifier = asset.rawValue + encounter.aircraft.registration
+        let identifier = asset.rawValue + encounter.aircraft.registration + (encounter.aircraft.livery ?? "")
         view.accessibilityIdentifier = identifier
         view.isAccessibilityElement = true
         view.accessibilityLabel = "3D model of \(encounter.aircraft.displayModel)"
@@ -78,6 +78,7 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
             model.addChildNode(child)
         }
         scene.rootNode.addChildNode(model)
+        applyBundledLivery(to: model)
 
         let (minimum, maximum) = model.boundingBox
         let center = SCNVector3(
@@ -91,23 +92,30 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
         model.scale = SCNVector3(scale, scale, scale)
         model.position = SCNVector3(0, compact ? -0.1 : -0.25, 0)
         model.eulerAngles = SCNVector3Zero
-        applyLivery(to: model, bounds: (minimum, maximum))
 
         let camera = SCNCamera()
         camera.fieldOfView = compact ? 34 : 31
         let cameraNode = SCNNode()
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(compact ? 14.5 : 13.5, 0.35, 0)
-        cameraNode.look(at: SCNVector3Zero)
+        cameraNode.position = cameraPosition
+        cameraNode.look(at: model.position)
         scene.rootNode.addChildNode(cameraNode)
 
+        let ambient = SCNLight()
+        ambient.type = .ambient
+        ambient.intensity = 620
+        ambient.color = UIColor(white: 0.92, alpha: 1)
+        let ambientNode = SCNNode()
+        ambientNode.light = ambient
+        scene.rootNode.addChildNode(ambientNode)
+
         let key = SCNLight()
-        key.type = .directional
-        key.intensity = 1_250
+        key.type = .omni
+        key.intensity = 900
         key.color = UIColor.white
         let keyNode = SCNNode()
         keyNode.light = key
-        keyNode.eulerAngles = SCNVector3(-0.7, -0.55, 0)
+        keyNode.position = cameraPosition
         scene.rootNode.addChildNode(keyNode)
 
         let fill = SCNLight()
@@ -120,96 +128,76 @@ private struct BundledAircraftMeshView: UIViewRepresentable {
         scene.rootNode.addChildNode(fillNode)
     }
 
-    private func applyLivery(to model: SCNNode, bounds: (SCNVector3, SCNVector3)) {
+    private var cameraPosition: SCNVector3 {
+        let distance: Float = compact ? 14.5 : 13.5
+        switch asset {
+        case .boeing737NG:
+            // The verified 737 source is X-forward with Z-spanning wings.
+            return SCNVector3(0, 0.35, distance)
+        case .boeing757200, .boeing7879:
+            // These source scenes are Z-forward with X-spanning wings.
+            return SCNVector3(distance, 0.35, 0)
+        }
+    }
+
+    private func applyBundledLivery(to model: SCNNode) {
+        let fuselageTexture: UIImage?
+        let tailTexture: UIImage?
+        switch asset {
+        case .boeing737NG:
+            fuselageTexture = bundledImage(named: encounter.aircraft.livery == "Classic Canyon Blue"
+                ? "boeing_737_classic_canyon_blue"
+                : "boeing_737_tennessee_one")
+            tailTexture = nil
+        case .boeing7879:
+            fuselageTexture = bundledImage(named: "boeing_787_silver_eagle_fuselage")
+            tailTexture = bundledImage(named: "boeing_787_silver_eagle_tail")
+        case .boeing757200:
+            fuselageTexture = nil
+            tailTexture = nil
+        }
+
         model.enumerateChildNodes { node, _ in
             guard let geometry = node.geometry else { return }
-            let role = liveryRole(for: node.name ?? "")
+            let name = (node.name ?? "").lowercased()
             let sources = geometry.materials.isEmpty ? [SCNMaterial()] : geometry.materials
             geometry.materials = sources.map { source in
                 let material = source.copy() as? SCNMaterial ?? SCNMaterial()
-                if let contents = liveryContents(for: role) {
-                    material.diffuse.contents = contents
-                    material.metalness.contents = role == .dark ? 0.05 : 0.16
-                    material.roughness.contents = role == .dark ? 0.28 : 0.38
+                switch asset {
+                case .boeing737NG:
+                    if let fuselageTexture {
+                        // This asset has one UV-mapped exterior material. Replacing
+                        // its diffuse atlas paints the mesh itself.
+                        material.diffuse.contents = fuselageTexture
+                    }
+                case .boeing7879:
+                    if name.contains("object001"), let fuselageTexture {
+                        material.diffuse.contents = fuselageTexture
+                    } else if name.contains("object008"), let tailTexture {
+                        material.diffuse.contents = tailTexture
+                    }
+                case .boeing757200:
+                    break
                 }
+                material.lightingModel = .physicallyBased
+                material.metalness.contents = 0.08
+                material.roughness.contents = 0.52
                 material.isDoubleSided = true
                 return material
             }
         }
-
-        if asset == .boeing737800 || asset == .boeing7879 {
-            addSideLiveryDecal(to: model, bounds: bounds)
-        }
     }
 
-    private func liveryRole(for rawName: String) -> LiveryRole {
-        let name = rawName.lowercased()
-        switch asset {
-        case .boeing737800:
-            if name.contains("mesh_116") { return .fuselage }
-            if ["mesh_099", "mesh_095", "mesh_062", "mesh_058", "mesh_025", "mesh_024", "mesh_023"].contains(where: { name.contains($0) }) { return .wing }
-            if ["mesh_093", "mesh_056"].contains(where: { name.contains($0) }) { return .engine }
-            if ["mesh_015", "mesh_014"].contains(where: { name.contains($0) }) { return .tail }
-            if ["mesh_114", "mesh_092", "mesh_055"].contains(where: { name.contains($0) }) { return .dark }
-            return .detail
-        case .boeing7879:
-            if name.contains("object001") { return .fuselage }
-            if name.contains("object016") || name.contains("object013") { return .wing }
-            if name.contains("object022") || name.contains("object009") { return .engine }
-            if name.contains("object008") || name.contains("object014") { return .tail }
-            if name.contains("object005") { return .dark }
-            return .detail
-        case .boeing757200:
-            return .detail
-        }
-    }
-
-    private func liveryContents(for role: LiveryRole) -> Any? {
-        switch role {
-        case .fuselage:
-            return UIColor(hex: encounter.palette.primaryHex)
-        case .wing:
-            return UIColor(white: 0.78, alpha: 1)
-        case .engine:
-            return UIColor(hex: encounter.palette.secondaryHex)
-        case .tail:
-            return UIColor(hex: encounter.palette.secondaryHex)
-        case .dark:
-            return UIColor(red: 0.025, green: 0.04, blue: 0.065, alpha: 1)
-        case .detail:
+    private func bundledImage(named name: String) -> UIImage? {
+        if let image = UIImage(named: name) { return image }
+        let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "AircraftLiveries")
+            ?? Bundle.main.url(forResource: name, withExtension: "png")
+        guard let url else {
+            aircraftModelLogger.error("Missing bundled livery texture: \(name, privacy: .public).png")
             return nil
         }
+        return UIImage(contentsOfFile: url.path)
     }
-
-    private func addSideLiveryDecal(to model: SCNNode, bounds: (SCNVector3, SCNVector3)) {
-        let size = SCNVector3(
-            bounds.1.x - bounds.0.x,
-            bounds.1.y - bounds.0.y,
-            bounds.1.z - bounds.0.z
-        )
-        let center = SCNVector3(
-            (bounds.0.x + bounds.1.x) * 0.5,
-            (bounds.0.y + bounds.1.y) * 0.5,
-            (bounds.0.z + bounds.1.z) * 0.5
-        )
-        let plane = SCNPlane(width: CGFloat(size.z * 0.78), height: CGFloat(size.y * 0.26))
-        let material = SCNMaterial()
-        material.diffuse.contents = LiveryTexture.sideDecal(for: encounter)
-        material.lightingModel = .constant
-        material.isDoubleSided = true
-        material.writesToDepthBuffer = false
-        plane.materials = [material]
-
-        let decal = SCNNode(geometry: plane)
-        decal.eulerAngles.y = .pi / 2
-        decal.position = SCNVector3(center.x + size.x * 0.055, center.y + size.y * 0.015, center.z)
-        decal.renderingOrder = 20
-        model.addChildNode(decal)
-    }
-}
-
-private enum LiveryRole {
-    case fuselage, wing, engine, tail, dark, detail
 }
 
 private struct ProceduralAircraftMeshView: UIViewRepresentable {
@@ -315,36 +303,6 @@ private enum LiveryTexture {
             default:
                 secondary.setFill(); cg.fill(CGRect(x: 0, y: 350, width: 1024, height: 162))
                 accent.setFill(); cg.fill(CGRect(x: 0, y: 335, width: 1024, height: 18))
-            }
-        }
-    }
-
-    static func sideDecal(for encounter: Encounter) -> UIImage {
-        let size = CGSize(width: 2048, height: 256)
-        let format = UIGraphicsImageRendererFormat(); format.opaque = false; format.scale = 1
-        return UIGraphicsImageRenderer(size: size, format: format).image { context in
-            let cg = context.cgContext
-            switch encounter.aircraft.livery {
-            case "Tennessee One":
-                UIColor(hex: encounter.palette.secondaryHex).setFill()
-                cg.fillEllipse(in: CGRect(x: 560, y: 38, width: 620, height: 180))
-                for center in [CGPoint(x: 735, y: 128), CGPoint(x: 870, y: 92), CGPoint(x: 1_010, y: 154)] {
-                    star(at: center, radius: 24, in: cg)
-                }
-                UIColor.white.setFill(); cg.fill(CGRect(x: 1_600, y: 20, width: 42, height: 216))
-            case "Classic Canyon Blue":
-                UIColor(hex: encounter.palette.secondaryHex).setFill(); cg.fill(CGRect(x: 240, y: 162, width: 1_550, height: 54))
-                UIColor(hex: encounter.palette.accentHex).setFill(); cg.fill(CGRect(x: 240, y: 148, width: 1_550, height: 14))
-            case "Silver Eagle":
-                UIColor(white: 0.12, alpha: 1).setFill()
-                stride(from: CGFloat(420), through: CGFloat(1_650), by: CGFloat(46)).forEach { x in
-                    cg.fillEllipse(in: CGRect(x: x, y: 86, width: 18, height: 13))
-                }
-                UIColor(hex: encounter.palette.secondaryHex).setFill(); cg.fill(CGRect(x: 350, y: 148, width: 1_380, height: 15))
-                UIColor(hex: encounter.palette.accentHex).setFill(); cg.fill(CGRect(x: 350, y: 166, width: 1_380, height: 11))
-            default:
-                UIColor(hex: encounter.palette.secondaryHex).setFill(); cg.fill(CGRect(x: 260, y: 150, width: 1_520, height: 20))
-                UIColor(hex: encounter.palette.accentHex).setFill(); cg.fill(CGRect(x: 260, y: 174, width: 1_520, height: 10))
             }
         }
     }
